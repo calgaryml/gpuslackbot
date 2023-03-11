@@ -27,6 +27,18 @@ hostname = 'kolossus'
 nvsmi = nvidia_smi.getInstance()
 device_count = pynvml.nvmlDeviceGetCount()
 
+idemojis = {0: ':zero:', 1: ':one:', 2: ':two:', 3: ':three:', 4: ':four', 5: ':five:', 6: ':six:', 7: ':seven:', 8: ':eight:'}
+def id2emoji(id):
+    if id in idemojis.keys():
+        return idemojis[id]
+    return f"{id}"
+
+def util2emoji(util):
+    return ':yawn:' if util < 20 else ':flushed:' if util < 80 else ':hot_face:'
+
+def temp2emoji(temp):
+    return ':snowflake:' if temp < 60 else ':fire:'
+
 # Function to query individual GPUs and return dict.
 def query_gpu(index):
     handle = pynvml.nvmlDeviceGetHandleByIndex(index)
@@ -38,18 +50,18 @@ def query_gpu(index):
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
     
-    return {'id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
+    return {'id': id2emoji(index), 'name': name, 'util': util, 'utilemoji': util2emoji(util), 'mem': mem, 'temp': temp, 'tempemoji': temp2emoji(temp), 'power': power}
 
 # Function to query GPUS and return message payload
 def query_gpus():
-    gpu_responses = '\n'.join(['GPU {id} ({name}): Util: {util} Mem: {mem} {temp}C {power}W'.format(**query_gpu(i)) for i in range(device_count)])
+    gpu_responses = '\n'.join(['*GPU {id}* ({name}): Util: {utilemoji} {util}% Mem: {mem}% {tempemoji} {temp}C :electric_plug: {power}W'.format(**query_gpu(i)) for i in range(device_count)])
 
     return {"blocks": [
       {
         "type": "header",
         "text": {
           "type": "plain_text",
-          "text": f"{hostname}"
+          "text": f":computer: {hostname}"
         }
       },
       {
@@ -58,11 +70,21 @@ def query_gpus():
       {
         "type": "section",
         "text": {
-            "type": "plain_text",
-            "text": gpu_responses,
-            "emoji": True
+            "type": "mrkdwn",
+            "text": gpu_responses
         },
-      }
+      },
+	  {
+	    "type": "context",
+		"elements": [{
+            "type": "plain_text",
+            "text": "NVIDIA GeForce GTX TITAN X",
+            "emoji": true
+        }]
+	  },
+      {
+        "type": "divider"
+      },
     ]}
 
 def query_accounted_apps():
