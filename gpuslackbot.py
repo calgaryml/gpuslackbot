@@ -23,6 +23,7 @@ slack_app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
 
 # Get basic information about the system/GPUs
 hostname = socket.gethostname()
+hostname = 'kolossus'
 nvsmi = nvidia_smi.getInstance()
 device_count = pynvml.nvmlDeviceGetCount()
 
@@ -39,9 +40,30 @@ def query_gpu(index):
     
     return {'id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
 
-# Function to query GPUS and return formatted string.
+# Function to query GPUS and return message payload
 def query_gpus():
-    return ['GPU {id} ({name}): Util: {util} Mem: {mem} {temp}C {power}W'.format(**query_gpu(i)) for i in range(device_count)]
+    gpu_responses = '\n'.join(['GPU {id} ({name}): Util: {util} Mem: {mem} {temp}C {power}W'.format(**query_gpu(i)) for i in range(device_count)])
+
+    return {"blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": f"{hostname}"
+        }
+      },
+      {
+        "type": "divider"
+      },
+      {
+        "type": "section",
+        "text": {
+            "type": "plain_text",
+            "text": gpu_responses,
+            "emoji": True
+        },
+      }
+    ]}
 
 def query_accounted_apps():
     accounted_apps=nvsmi.DeviceQuery('accounted-apps')
@@ -51,8 +73,8 @@ def query_accounted_apps():
 async def command(ack, body, respond):
     logging.debug(body)
     await ack()
-    gpuinfo = '\n'.join(query_gpus())
-    response = f"[{hostname}]: {gpuinfo}"
+    response = query_gpus()
+    logging.debug(response)
     await respond(response)
 
 @slack_app.view("socket_modal_submission")
