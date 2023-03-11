@@ -8,20 +8,18 @@ import os
 import sys
 import socket
 import logging
+import time
 
 import pynvml
 from pynvml.smi import nvidia_smi
-from fastapi import FastAPI
-from slack_bolt.async_app import AsyncApp
+
+from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
 logging.basicConfig(level=logging.DEBUG)
 
 # Install the Slack app and get xoxb-token in advance
 slack_app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
-socket_handler = AsyncSocketModeHandler(slack_app, os.environ["SLACK_APP_TOKEN"])
-
-fastapi_app = FastAPI()
 
 # Get basic information about the system/GPUs
 hostname = socket.gethostname()
@@ -49,27 +47,24 @@ def query_accounted_apps():
     accounted_apps=nvsmi.DeviceQuery('accounted-apps')
     return accounted_apps
 
-@slack_app.event({"type": "message"})
-async def receive_message(event, say):
-    await say("Hi")
-
-@slack_app.command("/gpus")
+@slack_app.command(f"/gpus_{hostname}")
 async def command(ack, body, respond):
+    logging.debug(body)
     await ack()
-    await respond('\n'.join(query_gpus()))
+    gpuinfo = '\n'.join(query_gpus())
+    response = f"[{hostname}]: {gpuinfo}"
+    await respond(response)
 
-@fastapi_app.get("/healthcheck")
-async def healthcheck():
-    if socket_handler.client is not None and await socket_handler.client.is_connected():
-        return "OK"
-    return "BAD"
+@slack_app.view("socket_modal_submission")
+async def submission(ack):
+    await ack()
 
-@fastapi_app.on_event('startup')
-async def start_slack_socket_conn():
-    await socket_handler.connect_async()
+async def main():
+    socket_handler = AsyncSocketModeHandler(slack_app, os.environ["SLACK_APP_TOKEN"])
+    await socket_handler.start_async()
 
-@fastapi_app.on_event('shutdown')
-async def start_slack_socket_conn():
-    await socket_handler.close_async()
+if __name__ == "__main__":
+    import asyncio
 
-print(query_gpus())
+    logging.info(f"Started Slack GPU Bot on Host: {hostname}, responding to command: /gpus_{hostname}")
+    asyncio.run(main())
