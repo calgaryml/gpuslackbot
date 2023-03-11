@@ -13,6 +13,8 @@ import time
 import pynvml
 from pynvml.smi import nvidia_smi
 
+from tqdm import tqdm
+
 from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
@@ -38,6 +40,10 @@ def util2emoji(util):
 
 def temp2emoji(temp):
     return ':snowflake:' if temp < 60 else ':fire:'
+
+def percentagebar(percent):
+    return tqdm(total=100, initial=percent, bar_format='{bar:15} ')
+    # return tqdm(total=100, initial=percent, bar_format='{l_bar}{bar:10}|{bar:-10b}')
 
 # Function to query individual GPUs and return dict.
 def query_gpu(index):
@@ -74,12 +80,18 @@ def query_gpus():
             "text": gpu_responses
         },
       },
+      {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": '        Util: `{}` {}%, Mem: `{}` {}%'.format(percentagebar(7), 7, percentagebar(90), 90)
+        },
+      },
 	  {
 	    "type": "context",
 		"elements": [{
             "type": "plain_text",
             "text": "NVIDIA GeForce GTX TITAN X",
-            "emoji": true
         }]
 	  },
       {
