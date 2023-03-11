@@ -39,11 +39,11 @@ def query_gpu(index):
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
     
-    return {'id': id, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
+    return {'id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
 
 # Function to query GPUS and return formatted string.
 def query_gpus():
-    gpu_status_lines = ('GPU {id} ({name}): Util: {util} Mem: {mem} {temp}C {power}W'.format(*query_gpu(i)) for i in range(device_count))
+    return ['GPU {id} ({name}): Util: {util} Mem: {mem} {temp}C {power}W'.format(**query_gpu(i)) for i in range(device_count)]
 
 def query_accounted_apps():
     accounted_apps=nvsmi.DeviceQuery('accounted-apps')
@@ -71,3 +71,5 @@ async def start_slack_socket_conn():
 @fastapi_app.on_event('shutdown')
 async def start_slack_socket_conn():
     await socket_handler.close_async()
+
+print(query_gpus())
