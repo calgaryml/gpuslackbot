@@ -1,7 +1,7 @@
 {
     "display_information": {
-        "name": "GPU Bot",
-        "description": "Bot to monitor GPU usage",
+        "name": "GPU Bot (Hostname)",
+        "description": "Bot to monitor GPU usage on Hostname",
         "background_color": "#000000"
     },
     "features": {
@@ -11,8 +11,8 @@
         },
         "slash_commands": [
             {
-                "command": "/gpus_HOSTNAME",
-                "description": "Show GPU usage on Server",
+                "command": "/gpus_peyto",
+                "description": "Show GPU usage on Hostname",
                 "should_escape": false
             }
         ]
