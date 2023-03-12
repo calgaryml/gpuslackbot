@@ -76,7 +76,7 @@ def gpu_section_format(gpu_state):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": 'Util: `{}` {}%, Mem: `{}` {}%'.format(percentagebar(util), util, percentagebar(mem), mem)
+            "text": 'Util: `|{}|` {}%, Mem: `|{}|` {}%'.format(percentagebar(util), util, percentagebar(mem), mem)
         },
     },
     {
