@@ -56,7 +56,7 @@ def _temp2emoji(temp):
 
 def _percentage_bar(percent):
     # Have to redirect tqdm to output to /dev/null, stderr by default
-    return tqdm(total=100, initial=percent, bar_format='|{bar:15}|',
+    return tqdm(total=100, initial=percent, bar_format='|{bar:12}|',
                 file=open(os.devnull, 'w', encoding="utf-8"))
 
 # Function to query individual GPUs and return dict.
@@ -71,8 +71,16 @@ def _query_gpu(index):
     mem = utilization.memory
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
+    # kbps, but want in Mbps
+    pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
+    # in Mbps
+    pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
+    pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
+    pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
 
-    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
+            'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
+            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}
 
 
 def _gpu_section_format(gpu_state):
@@ -82,34 +90,46 @@ def _gpu_section_format(gpu_state):
     mem = gpu_state['mem']
     temp = gpu_state['temp']
     power = gpu_state['power']
+    pciethroughput = gpu_state['pciethroughput']
+    pciemaxspeed = gpu_state['pciemaxspeed']
+    pciemaxlink = gpu_state['pciemaxlink']
+    pciemaxgen = gpu_state['pciemaxgen']
 
-    return [{
+    pciepercent = int(round((100*pciethroughput)/pciemaxspeed))
+
+    return [
+    {
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*GPU Status*: {_util2emoji(util)}"
-        },
-    },
-        {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f'Util: `{_percentage_bar(util)}` {util}%, Mem: `{_percentage_bar(mem)}` {mem}%'
+            "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:.0f}%"
+                    f", Mem: `{_percentage_bar(mem)} {mem:.0f}%`"
+                    f", PCIe: `{pciepercent}`"
+                    f" {pciethroughput:.0f} Mbps"
         },
     },
         {
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": f"{_id2emoji(gpu_id)} {name}, Temp: {temp}C {_temp2emoji(temp)}, "
-                    f"Power: {power:.0f}W :electric_plug:"
+            "text": f"{name}, Temp: {temp:d}C {_temp2emoji(temp)},"
+                    f" Power: {power:.0f}W :electric_plug:, PCIe {pciemaxgen} x{pciemaxlink}"
         }]
-    },
-        {
-        "type": "divider"
     }]
 
+def _all_gpu_short_status_format(gpu_state_list):
+    emoji_list = [f"{_id2emoji(gpu_state['gpu_id'])} {_util2emoji(gpu_state['util'])}"
+                    for gpu_state in gpu_state_list]
 
+    return {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"*GPU Status*: {''.join(emoji_list)}"
+        },
+    }
+
+# Function to query GPUS and return message payload
 def query_gpus():
     """Function to query GPUS and return slack blocks message.
 
@@ -121,12 +141,6 @@ def query_gpus():
     """
     gpu_state_list = [_query_gpu(i) for i in range(device_count)]
 
-    for gpu_state in gpu_state_list:
-        logging.debug(gpu_state)
-
-    for gpu_state in gpu_state_list:
-        logging.debug(_gpu_section_format(gpu_state))
-
     blocks = []
     blocks.append({
         "type": "header",
@@ -134,7 +148,8 @@ def query_gpus():
             "type": "plain_text",
             "text": f":computer: {hostname}"
         }
-    })
+      })
+    blocks.append(_all_gpu_short_status_format(gpu_state_list))
     blocks.append(
         {
             "type": "divider"
