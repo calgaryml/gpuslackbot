@@ -36,3 +36,6 @@ In order to run this bot, you first need to add the app to your Slack workspace,
 export SLACK_APP_TOKEN=xapp-***
 export SLACK_BOT_TOKEN=xoxb-***
 python3 gpuslackbot.py
+```
+### Multiple Servers/Hosts
+This app uses the Slack Socket interface, which does not broadcast consistently across multiple apps listening on one channel. Therefore, when using with multiple servers, you will need to register a seperate app (APP token and Bot token) for each server. Also ensure the app is setup to listen to the correct command.
