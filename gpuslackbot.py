@@ -71,8 +71,15 @@ def _query_gpu(index):
     mem = utilization.memory
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
+    # kbps, but want in Mbps
+    pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
+    # in Mbps
+    pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
+    pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
 
-    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
+            'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
+            'pciemaxlink': pciemaxlink}
 
 
 def _gpu_section_format(gpu_state):
@@ -82,6 +89,9 @@ def _gpu_section_format(gpu_state):
     mem = gpu_state['mem']
     temp = gpu_state['temp']
     power = gpu_state['power']
+    pciethroughput = gpu_state['pciethroughput']
+    pciemaxspeed = gpu_state['pciemaxspeed']
+    pciemaxlink = gpu_state['pciemaxlink']
 
     return [{
         "type": "section",
@@ -94,15 +104,18 @@ def _gpu_section_format(gpu_state):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f'Util: `{_percentage_bar(util)}` {util}%, Mem: `{_percentage_bar(mem)}` {mem}%'
+            "text": f"Util: `{_percentage_bar(util)}` { util}%"
+                    f", Mem: `{_percentage_bar(mem)} {mem}%`"
+                    f", PCIe: `{_percentage_bar(pciethroughput/pciemaxspeed)}`"
+                    f" {pciethroughput} Mbps"
         },
     },
         {
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": f"{_id2emoji(gpu_id)} {name}, Temp: {temp}C {_temp2emoji(temp)}, "
-                    f"Power: {power:.0f}W :electric_plug:"
+            "text": f"{_id2emoji(gpu_id)} {name}, Temp: {temp:d}C {_temp2emoji(temp)},"
+                    f" Power: {power:.0f}W :electric_plug:, PCIe Link: x{pciemaxlink}"
         }]
     },
         {
