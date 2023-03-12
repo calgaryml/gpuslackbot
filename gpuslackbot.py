@@ -56,7 +56,7 @@ def _temp2emoji(temp):
 
 def _percentage_bar(percent):
     # Have to redirect tqdm to output to /dev/null, stderr by default
-    return tqdm(total=100, initial=percent, bar_format='|{bar:15}|',
+    return tqdm(total=100, initial=percent, bar_format='|{bar:12}|',
                 file=open(os.devnull, 'w', encoding="utf-8"))
 
 # Function to query individual GPUs and return dict.
@@ -80,7 +80,7 @@ def _query_gpu(index):
     
     return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
             'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
-            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}}
+            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}
 
 
 def _gpu_section_format(gpu_state):
@@ -95,6 +95,8 @@ def _gpu_section_format(gpu_state):
     pciemaxlink = gpu_state['pciemaxlink']
     pciemaxgen = gpu_state['pciemaxgen']
 
+    pciepercent = int(round((100*pciethroughput)/pciemaxspeed)) 
+
     return [{
         "type": "section",
         "text": {
@@ -106,10 +108,10 @@ def _gpu_section_format(gpu_state):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"Util: `{_percentage_bar(util)}` { util}%"
-                    f", Mem: `{_percentage_bar(mem)} {mem}%`"
+            "text": f"Util: `{_percentage_bar(util)}` { util:d}%"
+                    f", Mem: `{_percentage_bar(mem)} {mem:d}%`"
                     f", PCIe: `{_percentage_bar(int((100*pciethroughput)/pciemaxspeed))}`"
-                    f" {pciethroughput} Mbps"
+                    f" {pciethroughput:d} Mbps"
         },
     },
         {
