@@ -1,7 +1,7 @@
 {
     "display_information": {
-        "name": "GPU Bot (Hostname)",
-        "description": "Bot to monitor GPU usage on Hostname",
+        "name": "GPU Bot (TODO: Replace TODO with Hostname throughout file)",
+        "description": "Bot to monitor GPU usage on TODO",
         "background_color": "#000000"
     },
     "features": {
@@ -11,8 +11,8 @@
         },
         "slash_commands": [
             {
-                "command": "/gpus_peyto",
-                "description": "Show GPU usage on Hostname",
+                "command": "/gpus_TODO",
+                "description": "Show GPU usage on TODO",
                 "should_escape": false
             }
         ]
