@@ -75,11 +75,12 @@ def _query_gpu(index):
     pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
     # in Mbps
     pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
-    pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
-
+    pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
+    pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
+    
     return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
             'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
-            'pciemaxlink': pciemaxlink}
+            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}}
 
 
 def _gpu_section_format(gpu_state):
@@ -92,6 +93,7 @@ def _gpu_section_format(gpu_state):
     pciethroughput = gpu_state['pciethroughput']
     pciemaxspeed = gpu_state['pciemaxspeed']
     pciemaxlink = gpu_state['pciemaxlink']
+    pciemaxgen = gpu_state['pciemaxgen']
 
     return [{
         "type": "section",
@@ -115,7 +117,7 @@ def _gpu_section_format(gpu_state):
         "elements": [{
             "type": "plain_text",
             "text": f"{_id2emoji(gpu_id)} {name}, Temp: {temp:d}C {_temp2emoji(temp)},"
-                    f" Power: {power:.0f}W :electric_plug:, PCIe Link: x{pciemaxlink}"
+                    f" Power: {power:.0f}W :electric_plug:, PCIe {pciemaxgen} x{pciemaxlink}"
         }]
     },
         {
