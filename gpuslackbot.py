@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-
-## export SLACK_APP_TOKEN=xapp-***
-## export SLACK_BOT_TOKEN=xoxb-***
-## python app.py
-
 import os
 import sys
 import socket
@@ -11,21 +6,26 @@ import logging
 import time
 
 import pynvml
-from pynvml.smi import nvidia_smi
 
 from tqdm import tqdm
 
 from slack_bolt.app.async_app import AsyncApp
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 # Install the Slack app and get xoxb-token in advance
 slack_app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
 
 # Get basic information about the system/GPUs
 hostname = socket.gethostname()
-nvsmi = nvidia_smi.getInstance()
+
+try:
+    pynvml.nvmlInit()
+    logging.debug("Initialized NVML")
+except:
+    logging.error("Failed to initialize NVML")
+
 device_count = pynvml.nvmlDeviceGetCount()
 
 idemojis = {0: ':zero:', 1: ':one:', 2: ':two:', 3: ':three:', 4: ':four', 5: ':five:', 6: ':six:', 7: ':seven:', 8: ':eight:'}
@@ -40,9 +40,9 @@ def util2emoji(util):
 def temp2emoji(temp):
     return ':snowflake:' if temp < 60 else ':fire:'
 
-def percentagebar(percent):
-    return tqdm(total=100, initial=percent, bar_format='{bar:15} ')
-    # return tqdm(total=100, initial=percent, bar_format='{l_bar}{bar:10}|{bar:-10b}')
+def percentage_bar(percent):
+    # Have to redirect tqdm to output to /dev/null, otherwise outputs to stderr by default (aside from string)
+    return tqdm(total=100, initial=percent, bar_format='|{bar:15}|', file=open(os.devnull, 'w'))
 
 # Function to query individual GPUs and return dict.
 def query_gpu(index):
@@ -76,14 +76,14 @@ def gpu_section_format(gpu_state):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": 'Util: `|{}|` {}%, Mem: `|{}|` {}%'.format(percentagebar(util), util, percentagebar(mem), mem)
+            "text": 'Util: `{}` {:d}%, Mem: `{}` {:d}%'.format(percentage_bar(util), util, percentage_bar(mem), mem)
         },
     },
     {
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": "{} {}, Temp: {}C {}, Power: {} :electric_plug:".format(id2emoji(gpu_id), name, temp, temp2emoji(temp), power),
+            "text": "{} {}, Temp: {:d}C {}, Power: {:.0f}W :electric_plug:".format(id2emoji(gpu_id), name, temp, temp2emoji(temp), power),
         }]
     },
     {
@@ -124,21 +124,13 @@ def query_gpus():
 
     return {"blocks": blocks}
 
-def query_accounted_apps():
-    accounted_apps=nvsmi.DeviceQuery('accounted-apps')
-    return accounted_apps
-
 @slack_app.command(f"/gpus_{hostname}")
 async def command(ack, body, respond):
-    logging.debug(body)
     await ack()
+    logging.debug(body)
     response = query_gpus()
     logging.debug(response)
     await respond(response)
-
-@slack_app.view("socket_modal_submission")
-async def submission(ack):
-    await ack()
 
 async def main():
     socket_handler = AsyncSocketModeHandler(slack_app, os.environ["SLACK_APP_TOKEN"])
