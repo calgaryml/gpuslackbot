@@ -77,7 +77,7 @@ def _query_gpu(index):
     pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
     pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
     pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
-    
+
     return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
             'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
             'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}
@@ -95,7 +95,7 @@ def _gpu_section_format(gpu_state):
     pciemaxlink = gpu_state['pciemaxlink']
     pciemaxgen = gpu_state['pciemaxgen']
 
-    pciepercent = int(round((100*pciethroughput)/pciemaxspeed)) 
+    pciepercent = int(round((100*pciethroughput)/pciemaxspeed))
 
     return [
     {
@@ -104,7 +104,7 @@ def _gpu_section_format(gpu_state):
             "type": "mrkdwn",
             "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:d}%"
                     f", Mem: `{_percentage_bar(mem)} {mem:d}%`"
-                    f", PCIe: `{_percentage_bar(int((100*pciethroughput)/pciemaxspeed))}`"
+                    f", PCIe: `{pciepercent}`"
                     f" {pciethroughput:d} Mbps"
         },
     },
@@ -118,8 +118,9 @@ def _gpu_section_format(gpu_state):
     }]
 
 def _all_gpu_short_status_format(gpu_state_list):
-    emoji_list = [f"{_id2emoji(gpu_state['gpu_id'])} {_util2emoji(gpu_state['util'])}"for gpu_state in gpu_state_list]
-    
+    emoji_list = [f"{_id2emoji(gpu_state['gpu_id'])} {_util2emoji(gpu_state['util'])}"
+                    for gpu_state in gpu_state_list]
+
     return {
         "type": "section",
         "text": {
