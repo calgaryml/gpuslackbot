@@ -25,7 +25,6 @@ slack_app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
 
 # Get basic information about the system/GPUs
 hostname = socket.gethostname()
-hostname = 'kolossus'
 nvsmi = nvidia_smi.getInstance()
 device_count = pynvml.nvmlDeviceGetCount()
 
