@@ -97,18 +97,12 @@ def _gpu_section_format(gpu_state):
 
     pciepercent = int(round((100*pciethroughput)/pciemaxspeed)) 
 
-    return [{
+    return [
+    {
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*GPU Status*: {_util2emoji(util)}"
-        },
-    },
-        {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f"Util: `{_percentage_bar(util)}` { util:d}%"
+            "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:d}%"
                     f", Mem: `{_percentage_bar(mem)} {mem:d}%`"
                     f", PCIe: `{_percentage_bar(int((100*pciethroughput)/pciemaxspeed))}`"
                     f" {pciethroughput:d} Mbps"
@@ -118,15 +112,23 @@ def _gpu_section_format(gpu_state):
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": f"{_id2emoji(gpu_id)} {name}, Temp: {temp:d}C {_temp2emoji(temp)},"
+            "text": f"{name}, Temp: {temp:d}C {_temp2emoji(temp)},"
                     f" Power: {power:.0f}W :electric_plug:, PCIe {pciemaxgen} x{pciemaxlink}"
         }]
-    },
-        {
-        "type": "divider"
     }]
 
+def _all_gpu_short_status_format(gpu_state_list):
+    emoji_list = [f"{_id2emoji(gpu_state['gpu_id'])} {_util2emoji(gpu_state['util'])}"for gpu_state in gpu_state_list]
+    
+    return {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"*GPU Status*: {' '.join(emoji_list)}"
+        },
+    }
 
+# Function to query GPUS and return message payload
 def query_gpus():
     """Function to query GPUS and return slack blocks message.
 
@@ -138,12 +140,6 @@ def query_gpus():
     """
     gpu_state_list = [_query_gpu(i) for i in range(device_count)]
 
-    for gpu_state in gpu_state_list:
-        logging.debug(gpu_state)
-
-    for gpu_state in gpu_state_list:
-        logging.debug(_gpu_section_format(gpu_state))
-
     blocks = []
     blocks.append({
         "type": "header",
@@ -151,7 +147,8 @@ def query_gpus():
             "type": "plain_text",
             "text": f":computer: {hostname}"
         }
-    })
+      })
+    blocks.append(_all_gpu_short_status_format(gpu_state_list))
     blocks.append(
         {
             "type": "divider"
