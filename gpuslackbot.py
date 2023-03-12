@@ -30,13 +30,13 @@ nvsmi = nvidia_smi.getInstance()
 device_count = pynvml.nvmlDeviceGetCount()
 
 idemojis = {0: ':zero:', 1: ':one:', 2: ':two:', 3: ':three:', 4: ':four', 5: ':five:', 6: ':six:', 7: ':seven:', 8: ':eight:'}
-def id2emoji(id):
-    if id in idemojis.keys():
-        return idemojis[id]
-    return f"{id}"
+def id2emoji(gpu_id):
+    if gpu_id in idemojis.keys():
+        return idemojis[gpu_id]
+    return f"{gpu_id}"
 
 def util2emoji(util):
-    return ':yawn:' if util < 20 else ':flushed:' if util < 80 else ':hot_face:'
+    return ':yawning_face:' if util < 20 else ':flushed:' if util < 80 else ':hot_face:'
 
 def temp2emoji(temp):
     return ':snowflake:' if temp < 60 else ':fire:'
@@ -56,48 +56,74 @@ def query_gpu(index):
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
     
-    return {'id': id2emoji(index), 'name': name, 'util': util, 'utilemoji': util2emoji(util), 'mem': mem, 'temp': temp, 'tempemoji': temp2emoji(temp), 'power': power}
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp, 'power': power}
+
+def gpu_section_format(gpu_state):
+    gpu_id = gpu_state['gpu_id']
+    name = gpu_state['name']
+    util = gpu_state['util']
+    mem = gpu_state['mem']
+    temp = gpu_state['temp']
+    power = gpu_state['power']
+
+    return [{
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": "*GPU Status*: {}".format(util2emoji(util))
+        },
+    },
+    {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": 'Util: `{}` {}%, Mem: `{}` {}%'.format(percentagebar(util), util, percentagebar(mem), mem)
+        },
+    },
+    {
+        "type": "context",
+        "elements": [{
+            "type": "plain_text",
+            "text": "{} {}, Temp: {}C {}, Power: {} :electric_plug:".format(id2emoji(gpu_id), name, temp, temp2emoji(temp), power),
+        }]
+    },
+    {
+        "type": "divider"
+    }]
 
 # Function to query GPUS and return message payload
 def query_gpus():
-    gpu_responses = '\n'.join(['*GPU {id}* ({name}): Util: {utilemoji} {util}% Mem: {mem}% {tempemoji} {temp}C :electric_plug: {power}W'.format(**query_gpu(i)) for i in range(device_count)])
+    gpu_state_list = [query_gpu(i) for i in range(device_count)]
 
-    return {"blocks": [
-      {
+    for gpu_state in gpu_state_list:
+        logging.debug(gpu_state)
+
+    for gpu_state in gpu_state_list:
+        logging.debug(gpu_section_format(gpu_state))
+
+
+    blocks = []
+    blocks.append({
         "type": "header",
         "text": {
           "type": "plain_text",
           "text": f":computer: {hostname}"
         }
-      },
+      })
+    blocks.append(
       {
         "type": "divider"
-      },
-      {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": gpu_responses
-        },
-      },
-      {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": '        Util: `{}` {}%, Mem: `{}` {}%'.format(percentagebar(7), 7, percentagebar(90), 90)
-        },
-      },
-	  {
-	    "type": "context",
-		"elements": [{
-            "type": "plain_text",
-            "text": "NVIDIA GeForce GTX TITAN X",
-        }]
-	  },
+      })
+    
+    for gpu_state in gpu_state_list:
+        blocks = blocks + gpu_section_format(gpu_state)
+
+    blocks.append(
       {
         "type": "divider"
-      },
-    ]}
+      })
+
+    return {"blocks": blocks}
 
 def query_accounted_apps():
     accounted_apps=nvsmi.DeviceQuery('accounted-apps')
