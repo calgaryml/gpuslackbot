@@ -124,7 +124,7 @@ def _all_gpu_short_status_format(gpu_state_list):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*GPU Status*: {' '.join(emoji_list)}"
+            "text": f"*GPU Status*: {''.join(emoji_list)}"
         },
     }
 
