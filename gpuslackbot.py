@@ -73,15 +73,15 @@ def _query_gpu(index):
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
     util = utilization.gpu
     mem = utilization.memory
-    
+
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     try:
         power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
-    except pynvml.nvml.NVMLError_NotSupported as e:
+    except pynvml.nvml.NVMLError_NotSupported:  # pylint: disable=maybe-no-member
         logging.debug("NVML doesn't support reading the power usage of GPU %i", index)
         power = None
-    # kbps, but want in Mbps
+    # Kbps, but want in Mbps
     pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
     # in Mbps
     pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
@@ -127,7 +127,7 @@ def _gpu_section_format(gpu_state):
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": f"{name} {memtotal:.0f}GB, Temp: {temp:d}C {_temp2emoji(temp)}" + 
+            "text": f"{name} {memtotal:.0f}GB, Temp: {temp:d}C {_temp2emoji(temp)}" +
                     powerstring +
                     f", PCIe {pciemaxgen} x{pciemaxlink}"
         }]
