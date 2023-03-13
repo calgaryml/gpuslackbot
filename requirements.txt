@@ -2,3 +2,4 @@ pynvml>=11.5.0
 slack_bolt>=1.16.4
 aiohttp>=3.8.4
 tqdm>=4.65.0
+psutil>=5.9.4
