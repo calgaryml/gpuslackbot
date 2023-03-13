@@ -13,6 +13,7 @@ import os
 import socket
 import logging
 
+import psutil
 import pynvml
 
 from tqdm import tqdm
@@ -27,6 +28,9 @@ slack_app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
 
 # Get basic information about the system/GPUs
 hostname = socket.gethostname()
+
+# Initialize PSUtil's non-blocking cpu usage call
+psutil.cpu_percent(interval=None)
 
 try:
     pynvml.nvmlInit()
@@ -69,9 +73,15 @@ def _query_gpu(index):
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
     util = utilization.gpu
     mem = utilization.memory
+
+    meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
-    power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
-    # kbps, but want in Mbps
+    try:
+        power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
+    except pynvml.nvml.NVMLError_NotSupported:  # pylint: disable=maybe-no-member
+        logging.debug("NVML doesn't support reading the power usage of GPU %i", index)
+        power = None
+    # Kbps, but want in Mbps
     pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
     # in Mbps
     pciemaxspeed = pynvml.nvmlDeviceGetPcieSpeed(handle)
@@ -80,7 +90,7 @@ def _query_gpu(index):
 
     return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
             'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
-            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen}
+            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen, 'memtotal': meminfo.total}
 
 
 def _gpu_section_format(gpu_state):
@@ -90,12 +100,17 @@ def _gpu_section_format(gpu_state):
     mem = gpu_state['mem']
     temp = gpu_state['temp']
     power = gpu_state['power']
+    # Memory total in GB
+    memtotal = ((gpu_state['memtotal']/1024)/1024)/1024
+
     pciethroughput = gpu_state['pciethroughput']
     pciemaxspeed = gpu_state['pciemaxspeed']
     pciemaxlink = gpu_state['pciemaxlink']
     pciemaxgen = gpu_state['pciemaxgen']
-
     pciepercent = int(round((100*pciethroughput)/pciemaxspeed))
+
+    # Some GPUs don't support power reading
+    powerstring = f", Power: {power:.0f}W :electric_plug:" if power else ""
 
     return [
     {
@@ -104,7 +119,7 @@ def _gpu_section_format(gpu_state):
             "type": "mrkdwn",
             "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:.0f}%"
                     f", Mem: `{_percentage_bar(mem)} {mem:.0f}%`"
-                    f", PCIe: `{pciepercent}`"
+                    f", PCIe: `{_percentage_bar(pciepercent)}`"
                     f" {pciethroughput:.0f} Mbps"
         },
     },
@@ -112,8 +127,9 @@ def _gpu_section_format(gpu_state):
         "type": "context",
         "elements": [{
             "type": "plain_text",
-            "text": f"{name}, Temp: {temp:d}C {_temp2emoji(temp)},"
-                    f" Power: {power:.0f}W :electric_plug:, PCIe {pciemaxgen} x{pciemaxlink}"
+            "text": f"{name} {memtotal:.0f}GB, Temp: {temp:d}C {_temp2emoji(temp)}" +
+                    powerstring +
+                    f", PCIe {pciemaxgen} x{pciemaxlink}"
         }]
     }]
 
@@ -125,11 +141,64 @@ def _all_gpu_short_status_format(gpu_state_list):
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*GPU Status*: {''.join(emoji_list)}"
+            "text": f"*GPU Status Summary*: {''.join(emoji_list)}"
         },
     }
 
-# Function to query GPUS and return message payload
+
+def query_cpus():
+    """Function to query CPU(s) and return slack blocks message.
+
+    Returns
+    -------
+    list[dict
+        list of JSON-serializable response blocks to send back to Slack.
+
+    """
+    cpu_usage = psutil.cpu_percent(interval=None)
+    logical_cores = psutil.cpu_count(logical=True)
+    physical_cores = psutil.cpu_count(logical=False)
+    mem = psutil.virtual_memory()
+    mem_usage = (mem.total - mem.available)/mem.total
+    total_mem_gb = ((mem.total/1024)/1024)/1024
+
+    return [{
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"CPU Usage: `{_percentage_bar(cpu_usage)}` {cpu_usage:.0f}%"
+                    f", Mem: `{_percentage_bar(mem_usage)}` {mem_usage:.0f}%"
+        },
+    },
+    {
+        "type": "context",
+        "elements": [{
+            "type": "plain_text",
+            "text": f"{physical_cores} cores ({logical_cores} logical), {total_mem_gb:.0f}GB RAM"
+        }]
+    }]
+
+
+def query_users():
+    """Function to query active users and return slack blocks message.
+
+    Returns
+    -------
+    dict
+        JSON-serializable response to send back to Slack.
+
+    """
+    users = set((user.name for user in psutil.users()))
+
+    return {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"*Active Users*: {', '.join(users) if users else '*None*'}"
+        },
+    }
+
+
 def query_gpus():
     """Function to query GPUS and return slack blocks message.
 
@@ -149,6 +218,7 @@ def query_gpus():
             "text": f":computer: {hostname}"
         }
       })
+    blocks = blocks + query_cpus()
     blocks.append(_all_gpu_short_status_format(gpu_state_list))
     blocks.append(
         {
@@ -158,6 +228,11 @@ def query_gpus():
     for gpu_state in gpu_state_list:
         blocks = blocks + _gpu_section_format(gpu_state)
 
+    blocks.append(
+        {
+            "type": "divider"
+        })
+    blocks.append(query_users())
     blocks.append(
         {
             "type": "divider"
