@@ -194,7 +194,7 @@ def query_users():
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": f"*Active Users*: {', '.join(users)}"
+            "text": f"*Active Users*: {', '.join(users) if users else '*None*'}"
         },
     }
 
