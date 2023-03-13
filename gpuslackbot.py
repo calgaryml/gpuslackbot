@@ -79,7 +79,7 @@ def _query_gpu(index):
     try:
         power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
     except pynvml.nvml.NVMLError_NotSupported as e:
-        logging.error("NVML doesn't support reading the power usage of GPU %i", index)
+        logging.debug("NVML doesn't support reading the power usage of GPU %i", index)
         power = None
     # kbps, but want in Mbps
     pciethroughput = pynvml.nvmlDeviceGetPcieThroughput(handle, 0)/1024
@@ -179,6 +179,26 @@ def query_cpus():
     }]
 
 
+def query_users():
+    """Function to query active users and return slack blocks message.
+
+    Returns
+    -------
+    dict
+        JSON-serializable response to send back to Slack.
+
+    """
+    users = set((user.name for user in psutil.users()))
+
+    return {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"*Active Users*: {', '.join(users)}"
+        },
+    }
+
+
 def query_gpus():
     """Function to query GPUS and return slack blocks message.
 
@@ -208,6 +228,11 @@ def query_gpus():
     for gpu_state in gpu_state_list:
         blocks = blocks + _gpu_section_format(gpu_state)
 
+    blocks.append(
+        {
+            "type": "divider"
+        })
+    blocks.append(query_users())
     blocks.append(
         {
             "type": "divider"
