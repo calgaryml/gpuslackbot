@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gpuslackbot"
+version = "1.0.0"
+authors = [
+  { name="Yani Ioannou", email="yani.ioannou@gmail.com" },
+]
+description = "Slack bot to show GPU usage on computers."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/calgaryml/gpuslackbot"
+"Bug Tracker" = "https://github.com/calgaryml/gpuslackbot/issues"
