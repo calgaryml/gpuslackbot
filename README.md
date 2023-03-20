@@ -29,6 +29,12 @@ pip3 install --user -r requirements.txt
 
 In addition it will need a working CUDA install, with nvidia-smi/nvml libraries installed.
 
+## Build Python Wheel
+
+```
+python -m build --wheel
+```
+
 ## Slack Workspace Permissions/Configuration
 In order to run this bot, you first need to add the app to your Slack workspace, getting both a Slack App Token and Bot Token. These must be loaded as environmental variables:
 
