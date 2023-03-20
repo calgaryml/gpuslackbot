@@ -21,10 +21,12 @@ Util: `█████████████▌  ` 90%, Mem: `█████�
 
 ---------
 
+# Building from Source
+
 ## Python Requirements
 You can install the python requirments for this bot:
 ```
-pip3 install --user -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 In addition it will need a working CUDA install, with nvidia-smi/nvml libraries installed.
@@ -32,7 +34,8 @@ In addition it will need a working CUDA install, with nvidia-smi/nvml libraries 
 ## Build Python Wheel
 
 ```
-python -m build --wheel
+pip3 install build
+python3 -m build --wheel
 ```
 
 ## Slack Workspace Permissions/Configuration
@@ -45,6 +48,7 @@ python3 gpuslackbot.py
 ```
 
 ## Installing as a Systemd Service
+Edit the file `systemd/system/gpuslackbot.service.d/gpuslackbot.conf` to add the required slack token environmental variable (see above). Next test the service, and ensure that it is running:
 
 Copy the relevant files into your systemd configuration directly, e.g.
 
@@ -55,10 +59,9 @@ $ sudo mkdir /etc/systemd/system/gpuslackbot.service.d
 $ sudo cp systemd/system/gpuslackbot.service.d/gpuslackbot.conf /etc/systemd/system/gpuslackbot.service.d/
 ```
 
-And then edit the file `systemd/system/gpuslackbot.service.d/gpuslackbot.conf` to add the required slack token environmental variable (see above). Next test the service, and ensure that it is running:
 
 ```
-$ sudo service start myservice
+$ sudo service gpuslackbot start
 $ sudo service gpuslackbot status
 ● gpuslackbot.service - GPU Slack Bot
      Loaded: loaded (/etc/systemd/system/gpuslackbot.service; disabled; vendor preset: enabled)
