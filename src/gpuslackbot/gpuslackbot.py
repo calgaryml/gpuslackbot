@@ -75,7 +75,7 @@ def _query_gpu(index):
 
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
 
-    gpu_mem_usage = (meminfo.total - meminfo.available)/meminfo.total
+    gpu_mem_usage = (meminfo.total - meminfo.free)/meminfo.total
 
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     try:
