@@ -118,7 +118,7 @@ def _gpu_section_format(gpu_state):
         "text": {
             "type": "mrkdwn",
             "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:.0f}%"
-                    f", Mem: `{_percentage_bar(mem)} {mem:.0f}%`"
+                    f", Mem: `{_percentage_bar(mem)}%` {mem:.0f}"
                     f", PCIe: `{_percentage_bar(pciepercent)}`"
                     f" {pciethroughput:.0f} Mbps"
         },
