@@ -72,7 +72,6 @@ def _query_gpu(index):
     name = pynvml.nvmlDeviceGetName(handle)
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
     util = utilization.gpu
-    mem = utilization.memory
 
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
@@ -88,7 +87,7 @@ def _query_gpu(index):
     pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
     pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
 
-    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': meminfo.used, 'temp': temp,
             'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
             'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen, 'memtotal': meminfo.total}
 
