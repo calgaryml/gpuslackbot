@@ -90,7 +90,7 @@ def _query_gpu(index):
     pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
     pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
 
-    return {'gpu_id': index, 'name': name, 'util': util, 'mem': round(gpu_mem_usage*100), 
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': round(gpu_mem_usage*100),
             'temp': temp, 'power': power, 'pciethroughput': pciethroughput,
             'pciemaxspeed': pciemaxspeed, 'pciemaxlink': pciemaxlink,
             'pciemaxgen': pciemaxgen, 'memtotal': meminfo.total}
