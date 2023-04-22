@@ -72,9 +72,11 @@ def _query_gpu(index):
     name = pynvml.nvmlDeviceGetName(handle)
     utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
     util = utilization.gpu
-    mem = utilization.memory
 
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+
+    gpu_mem_usage = (meminfo.total - meminfo.free)/meminfo.total
+
     temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
     try:
         power = int(pynvml.nvmlDeviceGetPowerUsage(handle))/1000
@@ -88,9 +90,10 @@ def _query_gpu(index):
     pciemaxlink = pynvml.nvmlDeviceGetMaxPcieLinkWidth(handle)
     pciemaxgen = pynvml.nvmlDeviceGetMaxPcieLinkGeneration(handle)
 
-    return {'gpu_id': index, 'name': name, 'util': util, 'mem': mem, 'temp': temp,
-            'power': power, 'pciethroughput': pciethroughput, 'pciemaxspeed': pciemaxspeed,
-            'pciemaxlink': pciemaxlink, 'pciemaxgen': pciemaxgen, 'memtotal': meminfo.total}
+    return {'gpu_id': index, 'name': name, 'util': util, 'mem': round(gpu_mem_usage*100),
+            'temp': temp, 'power': power, 'pciethroughput': pciethroughput,
+            'pciemaxspeed': pciemaxspeed, 'pciemaxlink': pciemaxlink,
+            'pciemaxgen': pciemaxgen, 'memtotal': meminfo.total}
 
 
 def _gpu_section_format(gpu_state):
@@ -118,7 +121,7 @@ def _gpu_section_format(gpu_state):
         "text": {
             "type": "mrkdwn",
             "text": f"{_id2emoji(gpu_id)} Util: `{_percentage_bar(util)}` {util:.0f}%"
-                    f", Mem: `{_percentage_bar(mem)} {mem:.0f}%`"
+                    f", Mem: `{_percentage_bar(mem)}` {mem:.0f}%"
                     f", PCIe: `{_percentage_bar(pciepercent)}`"
                     f" {pciethroughput:.0f} Mbps"
         },
