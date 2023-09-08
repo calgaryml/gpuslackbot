@@ -38,6 +38,12 @@ pip3 install build
 python3 -m build --wheel
 ```
 
+## Installing Python Wheel
+
+```
+sudo pip3 install dist/gpuslackbot-*-py3-none-any.whl
+```
+
 ## Slack Workspace Permissions/Configuration
 In order to run this bot, you first need to add the app to your Slack workspace, getting both a Slack App Token and Bot Token. These must be loaded as environmental variables:
 
