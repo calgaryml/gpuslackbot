@@ -53,6 +53,19 @@ export SLACK_BOT_TOKEN=xoxb-***
 python3 gpuslackbot.py
 ```
 
+## (Optional) Run as Non-Root User
+The app doesn't need root permissions, so it is best practice to run as a non-root user. To do so, add the User and Group configuration to the service:
+
+```
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart=python3 -m gpuslackbot.gpuslackbot
+Environment=PYTHONUNBUFFERED=1
+User=user
+Group=group
+```
+
 ## Installing as a Systemd Service
 Edit the file `systemd/system/gpuslackbot.service.d/gpuslackbot.conf` to add the required slack token environmental variable (see above). Next test the service, and ensure that it is running:
 
